@@ -62,6 +62,14 @@ ui <- dashboardPage( skin = "blue",
                   choices = c("Sim", 
                               "Não"),
                   selected = "Sim"),
+      
+      selectInput("veiculo", "TIPO DE VEÍCULO:",
+                  choices = c("Carro", 
+                              "Caminhão",
+                              "Carreta",
+                              "Motocicleta"),
+                  selected = "Carro"),
+      
       selectInput("multa", "Multado:",
                   choices = c("Sim", 
                               "Não"),
@@ -103,7 +111,7 @@ tabItems(
                                position = "left",
                                tags$img(
                                  id = "foto1",
-                                 src = "sustentabilidade.jpg",
+                                 src = "frota.jpg",
                                  controls = "controls",
                                  width = 550,height = 400),
                                tags$br(),
@@ -531,8 +539,10 @@ server <- function(input, output, session) {
   })
   
 #------------------------------------------------------------------------------#
+# Definir Diretorio de Trabalho
+setwd("C:/Users/mario.valente/Documents/github_2024/Pesquisa_Motociclistas_2024-main")
+
 # Carregar os dados do Excel
-  setwd("C:/Users/usuario/Documents/Projeto_Sustentatbilidade")
 data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
   
   # Filtrar dados com base no município selecionado
@@ -569,12 +579,11 @@ data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
   output$sexoPlot <- renderPlotly({
     ggplotly(plot_with_percent(filtered_data(), "SEXO", "SEXO", "", order = "asc"),
              )
-    
   })
   
-  output$racaPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "RACA", "RACA", "", order = "asc" ))
-  })
+ # output$racaPlot <- renderPlotly({
+#    ggplotly(plot_with_percent(filtered_data(), "RACA", "RACA", "", order = "asc" ))
+#  })
   
   output$idadePlot <- renderPlotly({
     p <- ggplot(filtered_data(), aes(x = IDADE)) +
@@ -592,10 +601,14 @@ data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
     ggplotly(plot_with_percent(filtered_data(), "ESTADO_CIVIL", "ESTADO_CIVIL", ""))
   })
   
+  
+  #output$escolaridadePlot <- renderPlotly({
+  #  ggplotly(plot_with_percent(filtered_data(), "GERENCIA", "GERENCIA", ""))
+  #})
+  
   output$cargoPlot <- renderPlotly({
     ggplotly(plot_with_percent(filtered_data(), "CARGO_FUNCAO", "CARGO_FUNCAO", "")+
                coord_flip()
-             
              )
   })
   
