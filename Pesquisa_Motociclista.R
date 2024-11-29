@@ -47,32 +47,17 @@ ui <- dashboardPage( skin = "blue",
       menuItem("LEGISLAÇÃO", tabName = "coleta", icon = icon("recycle")),
       menuItem("COMPORTAMENTO", tabName = "ciretran", icon = icon("recycle")),
       selectInput("municipio", "MUNICÍPIOS:",
-                  choices = c("AURORA DO PARÁ", 
-                              "BELTERRA", 
-                              "BREU BRANCO",
-                              "CACHOEIRA DO ARARI", 
-                              "CANAÃ DOS CARAJÁS",
-                              "CASTANHAL",
-                              "COLARES",
-                              "CONCEIÇÃO DO ARAGUAIA",
-                              "CURIONÓPOLIS",
-                              "MARACANÃ",
-                              "MARAPANIN",
-                              "NOVO REPARTIMENTO",
-                              "ORIXIMINÁ",
-                              "OURILÂNDIA",
-                              "PARAUABEBAS",
-                              "REDENÇÃO",
-                              "SALVATERRA",
-                              "SANTO ANTÔNIO DO TAUÁ",
-                              "SÃO FÉLIX DO XINGU",
-                              "SAPUCAIA",
-                              "SOURE",
-                              "TUCUMÃ",
-                              "ULIANÓPOLIS",
-                              "VIGIA",
-                              "XINGUARA"),
-                  selected = "AURORA DO PARÁ"),
+                  choices = c("Altamira", 
+                              "Marabá", 
+                              "Castanhal",
+                              "Bragança",
+                              "Santarém", 
+                              "Parauapebas",
+                              "Itaituba",
+                              "Canaã dos Carajás",
+                              "Oriximiná",
+                              "Breves"),
+                  selected = "Altamira"),
       selectInput("cnh", "POSSUI CNH:",
                   choices = c("Sim", 
                               "Não"),
@@ -90,10 +75,10 @@ ui <- dashboardPage( skin = "blue",
                               "Não"),
                   selected = "Sim"),
       selectInput("destino", "Sinistro de Trânsito:",
-                   choices = c("FATAL", 
-                               "NÃO FATAL",
-                               "NUNCA"),
-                   selected =  "FATAL"),
+                   choices = c("Fatal", 
+                               "Não Fatal",
+                               "Nunca"),
+                   selected =  "Fatal"),
 #------------------------------------------------------------------------------#
       # Botão para reiniciar os filtros
       actionButton("reset_button", "REINICIAR",
@@ -528,8 +513,12 @@ tabItem(tabName = "socioeconomico",
 )
    
 
-# Server
+# CAMADA Server ===============================================================#
 server <- function(input, output, session) {
+  
+  
+  
+
   
   detran_location <- data.frame(
     lat = -1.37843,
@@ -555,14 +544,14 @@ server <- function(input, output, session) {
   
 #------------------------------------------------------------------------------#
 # Definir Diretorio de Trabalho
-setwd("C:/Users/usuario/Documents/Pesquisa_Motociclistas/Pesquisa_Motociclistas_2024")
+setwd("C:/Users/mario.valente/Documents/github_2024/Pesquisa_Motociclistas_2024-main")
 
 # Carregar os dados do Excel
 data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
   
   # Filtrar dados com base no município selecionado
   filtered_data <- reactive({
-    subset(data, MUNICIPIO == input$municipio & CNH == input$cnh & ACIDENTE == input$destino)
+    subset(data, MUNICIPIO == input$municipio & CNH == input$cnh & P21 == input$destino)
   })
  
   
@@ -589,18 +578,16 @@ data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
   }
  
 
-  
-  # Socio-Econômico
+# Socio-Econômico
+# GÊNERO
   output$sexoPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "SEXO", "SEXO", "", order = "asc"),
+    ggplotly(plot_with_percent(filtered_data(), "SEXO", "SEXO", "", 
+                               order = "asc"),
              )
   })
-  
- # output$racaPlot <- renderPlotly({
-#    ggplotly(plot_with_percent(filtered_data(), "RACA", "RACA", "", order = "asc" ))
-#  })
-  
+# IDADE
   output$idadePlot <- renderPlotly({
+    
     p <- ggplot(filtered_data(), aes(x = IDADE)) +
       geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
       labs(title = "", x = "Idades", y = "Nº de Entrevistados") +
@@ -608,13 +595,14 @@ data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
     ggplotly(p)
   })
   
+#ESCOLARIDADE
   output$escolaridadePlot <- renderPlotly({
     ggplotly(plot_with_percent(filtered_data(), "ESCOLARIDADE", "ESCOLARIDADE", ""))
   })
   
- # output$estadoCivilPlot <- renderPlotly({
- #   ggplotly(plot_with_percent(filtered_data(), "ESTADO_CIVIL", "ESTADO_CIVIL", ""))
- # })
+  output$estadoCivilPlot <- renderPlotly({
+    ggplotly(plot_with_percent(filtered_data(), "ESTADO_CIVIL", "ESTADO_CIVIL", ""))
+  })
   
   
   #output$escolaridadePlot <- renderPlotly({
@@ -683,6 +671,8 @@ data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
     updateSelectInput(session, "municipio", selected = "Altamira")
     updateSelectInput(session, "cnh", selected = "Sim")
     updateSelectInput(session, "destino", selected = "Aterro Sanitário")
+    updateSelectInput(session, "multa", selected = "Sim")
+    updateSelectInput(session, "destino", selected = "Fatal")
   })
 }
   
