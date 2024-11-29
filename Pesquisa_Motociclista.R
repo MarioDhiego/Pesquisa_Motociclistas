@@ -1,16 +1,29 @@
+
+# PCOTES ----------------------------------------------------------------------#
+library(readr)
+library(readxl)
+library(dplyr)
+library(plyr)
 library(shiny)
 library(shinydashboard)
 library(shinydashboardPlus)
+library(shinyWidgets)
+library(shinycssloaders)
 library(ggplot2)
-library(leaflet)
 library(plotly)
-library(dplyr)
+library(leaflet)
+library(likert)
 library(scales) 
 library(htmlwidgets)
 library(htmltools)
-library(likert)
 library(RColorBrewer)
-
+library(table1)
+library(flextable)
+library(rstatix)
+library(haven)
+library(DiagrammeR) 
+library(rlang)
+#------------------------------------------------------------------------------#
 
 
 # Interface do Usuário (UI)
@@ -43,7 +56,7 @@ ui <- dashboardPage( skin = "blue",
                menuSubItem("Sobre Pesquisa", tabName="sobre1", icon=icon("book")),
                menuSubItem("Vídeo Institucional", tabName="video1", icon=icon("video"))
                ),
-      menuItem("SÓCIO-ECONÔMICO", tabName = "socioeconomico", icon = icon("users")),
+      menuItem("SÓCIO-ECONÔMICO", tabName = "socioeconomico1", icon = icon("users")),
       menuItem("LEGISLAÇÃO", tabName = "coleta", icon = icon("recycle")),
       menuItem("COMPORTAMENTO", tabName = "ciretran", icon = icon("recycle")),
       selectInput("municipio", "MUNICÍPIOS:",
@@ -62,23 +75,14 @@ ui <- dashboardPage( skin = "blue",
                   choices = c("Sim", 
                               "Não"),
                   selected = "Sim"),
-      
-      selectInput("veiculo", "TIPO DE VEÍCULO:",
-                  choices = c("Carro", 
-                              "Caminhão",
-                              "Carreta",
-                              "Motocicleta"),
-                  selected = "Carro"),
-      
       selectInput("multa", "Multado:",
                   choices = c("Sim", 
                               "Não"),
                   selected = "Sim"),
-      selectInput("destino", "Sinistro de Trânsito:",
-                   choices = c("Fatal", 
-                               "Não Fatal",
+      selectInput("sinistro", "Sinistro de Trânsito:",
+                   choices = c("Sim", 
                                "Nunca"),
-                   selected =  "Fatal"),
+                   selected =  "Sim"),
 #------------------------------------------------------------------------------#
       # Botão para reiniciar os filtros
       actionButton("reset_button", "REINICIAR",
@@ -259,7 +263,6 @@ tabPanel("MATERIAL E MÉTODOS",
           )
          )
 ),
-
 tabPanel("RECURSO COMPUTACIONAL", icon=icon("computer"),
          fluidRow(
            column(width=4,
@@ -293,7 +296,7 @@ tabPanel("RECURSO COMPUTACIONAL", icon=icon("computer"),
                                          width=180,height=150),
                                        tags$br(),
                                        tags$a("RStudio",
-                                              href = "https://download1.rstudio.org/electron/windows/RStudio-2023.09.1-494.exe"),
+                                        href = "https://download1.rstudio.org/electron/windows/RStudio-2023.09.1-494.exe"),
                                        tags$br(),
                                 )
                               )
@@ -422,28 +425,23 @@ Fiscalização em nível Estadual."
       
 #------------------------------------------------------------------------------#
 # Aba Socio-Econômico
-tabItem(tabName = "socioeconomico",
+tabItem(tabName = "socioeconomico1",
         fluidRow(
           box(title = "Distribuição po Gênero", 
               status = "primary", 
               solidHeader = TRUE,
               collapsible = TRUE,
-              plotlyOutput("sexoPlot", height = 300)),
+              plotlyOutput("sexoPlot1", height = 300)),
           box(title = "Distribuição por Idade", 
               status = "primary", 
               solidHeader = TRUE,
               collapsible = TRUE,
-              plotlyOutput("idadePlot", height = 300)),
+              plotlyOutput("idadePlot1", height = 300)),
           box(title = "Distribuição por Grau de Escolaridade", 
               status = "primary", 
               solidHeader = TRUE,
               collapsible = TRUE,
-              plotlyOutput("escolaridadePlot", height = 300)),
-          box(title = "Motivo de NÃO ser Habilitado", 
-              status = "primary", 
-              solidHeader = TRUE,
-              collapsible = TRUE,
-              plotlyOutput("transportePlot", height = 300))
+              plotlyOutput("escolaridadePlot1", height = 300))
               )
       ),
       # Aba Legislação
@@ -494,12 +492,6 @@ tabItem(tabName = "socioeconomico",
               solidHeader = TRUE,
               collapsible = TRUE,
               plotlyOutput("destinoFinalLixoPlot", height = 300))
-          #,
-          #box(title = "VC Sugere o Destino Final do Lixo", 
-          #    status = "warning", 
-          #    solidHeader = TRUE,
-          #    collapsible = TRUE,
-          #    plotlyOutput("sugeredestinoLixoPlot", height = 300))
               )
       )
     ),
@@ -507,8 +499,6 @@ tabItem(tabName = "socioeconomico",
       left = HTML("CopyRight <b>&copy; Todos os Direitos Reservados.</b>"), 
       right = tags$b("Belém-PA, 2024 v.1")
     )
-  
-
 )
 )
    
@@ -517,9 +507,7 @@ tabItem(tabName = "socioeconomico",
 server <- function(input, output, session) {
   
   
-  
-
-  
+# Mapa
   detran_location <- data.frame(
     lat = -1.37843,
     lon = -48.44034
@@ -541,138 +529,86 @@ server <- function(input, output, session) {
               lat = detran_location$lat,
               zoom = 15)
   })
+#------------------------------------------------------------------------------#
+
+  
   
 #------------------------------------------------------------------------------#
 # Definir Diretorio de Trabalho
 setwd("C:/Users/mario.valente/Documents/github_2024/Pesquisa_Motociclistas_2024-main")
 
 # Carregar os dados do Excel
+
 data <- readxl::read_excel("BANCO_PROJETO_SUSTENTABILIDADE.xlsx")
+Dados_Clima <- readxl::read_excel("Dados_Motociclista.xls")
   
-  # Filtrar dados com base no município selecionado
-  filtered_data <- reactive({
-    subset(data, MUNICIPIO == input$municipio & CNH == input$cnh & P21 == input$destino)
-  })
- 
-  
-  # Função para criar o gráfico com porcentagens e ordenação
-  plot_with_percent <- function(data, x_var, fill_var, title, order = "asc") {
-    # Reordenando os níveis da variável categórica
-    data[[x_var]] <- if (order == "asc") {
-      forcats::fct_infreq(data[[x_var]]) # Crescente
-    } else if (order == "desc") {
-      forcats::fct_rev(forcats::fct_infreq(data[[x_var]])) # Decrescente
-    } else {
-      factor(data[[x_var]]) # Ordem original
-    }
-  
-  
-# Função para criar gráficos de barras com percentuais
- #plot_with_percent <- function(data, x_var, fill_var, title) {
-    ggplot(data, aes_string(x = x_var, fill = fill_var)) +
-      geom_bar(color = "black") +
-      geom_text(stat = 'count', aes(label = scales::percent(..count../sum(..count..))),
-                position = position_stack(vjust = 0.5), color = "white") +
-      labs(title = title, x = "", y = "Nº de Entrevistados") +
-      theme_gray()
+
+filtered_data <- reactive({
+  subset(data, MUNICIPIO == input$municipio & CNH == input$cnh)
+})
+
+filtered_ciretran_data <- reactive({
+  subset(Dados_Clima, MUNICIPIO == input$municipio & CNH == input$cnh)
+})
+
+
+# Função para criar o gráfico com porcentagens e ordenação
+plot_with_percent <- function(data, x_var, fill_var, title, order = "asc") {
+  # Reordenando os níveis da variável categórica
+  data[[x_var]] <- if (order == "asc") {
+    forcats::fct_infreq(data[[x_var]]) # Crescente
+  } else if (order == "desc") {
+    forcats::fct_rev(forcats::fct_infreq(data[[x_var]])) # Decrescente
+  } else {
+    factor(data[[x_var]]) # Ordem original
   }
- 
-
+  
+  # Função para criar gráficos de barras com percentuais
+  #plot_with_percent <- function(data, x_var, fill_var, title) {
+  ggplot(data, aes_string(x = x_var, fill = fill_var)) +
+    geom_bar(color = "black") +
+    geom_text(stat = 'count', aes(label = scales::percent(..count../sum(..count..))),
+              position = position_stack(vjust = 0.5), color = "white") +
+    labs(title = title, x = "", y = "Nº de Entrevistados") +
+    theme_gray()
+}
 # Socio-Econômico
-# GÊNERO
-  output$sexoPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "SEXO", "SEXO", "", 
-                               order = "asc"),
-             )
-  })
-# IDADE
-  output$idadePlot <- renderPlotly({
-    
-    p <- ggplot(filtered_data(), aes(x = IDADE)) +
-      geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
-      labs(title = "", x = "Idades", y = "Nº de Entrevistados") +
-      theme_gray()
-    ggplotly(p)
-  })
-  
-#ESCOLARIDADE
-  output$escolaridadePlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "ESCOLARIDADE", "ESCOLARIDADE", ""))
-  })
-  
-  output$estadoCivilPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "ESTADO_CIVIL", "ESTADO_CIVIL", ""))
-  })
-  
-  
-  #output$escolaridadePlot <- renderPlotly({
-  #  ggplotly(plot_with_percent(filtered_data(), "GERENCIA", "GERENCIA", ""))
-  #})
-  
-  output$cargoPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "CARGO_FUNCAO", "CARGO_FUNCAO", "")+
-               coord_flip()
-             )
-  })
-  
-  output$cnhPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "CNH", "CNH", ""))
-  })
-  
-  output$transportePlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "MEIO_TRANSPORTE", "MEIO_TRANSPORTE", "")+
-             coord_flip()
-             )
-  })
+output$sexoPlot1 <- renderPlotly({
+  ggplotly(plot_with_percent(filtered_data(), "SEXO", "SEXO", "", order = "asc"),
+  )
+})
+
+
+output$escolaridadePlot1 <- renderPlotly({
+  ggplotly(plot_with_percent(filtered_data(), "ESCOLARIDADE", "ESCOLARIDADE", ""))
+})
+
+output$idadePlot1 <- renderPlotly({
+  p <- ggplot(filtered_data(), aes(x = IDADE)) +
+    geom_histogram(binwidth = 4, 
+                   fill = "skyblue", 
+                   color = "white", 
+                   alpha = 0.8
+                   ) +
+    labs(title = "", 
+         x = "Idades", 
+         y = "Nº de Entrevistados") +
+    theme_minimal(base_size = 12)+
+    theme(plot.title = element_text(hjust = 0.5, 
+                                    face = "bold"))
+  ggplotly(p)
+})
 
 #------------------------------------------------------------------------------#  
   
-  
-#------------------------------------------------------------------------------#  
-# Coleta Seletiva
-  output$bairroColetaPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P9", "P9", ""))
-  })
-  
-  output$informesPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P10", "P10", ""))
-  })
-  
-  output$separarLixoPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P11", "P11", ""))
-  })
-  
-  output$separarCorretamentePlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P12", "P12", ""))
-  })
-  
-  # CIRETRAN
-  output$lixeiraFacilidadePlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P16", "P16", ""))
-  })
-  
-  output$usoGarrafaCanecaPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P17", "P17", ""))
-  })
-  
-  output$lixeiraColetaSeletivaPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P19", "P19", ""))
-  })
-  
-  output$destinoFinalLixoPlot <- renderPlotly({
-    ggplotly(plot_with_percent(filtered_data(), "P20", "P20", ""))
-  })
-  
-  #output$sugeredestinoLixoPlot <- renderPlotly({
-  #  ggplotly(plot_with_percent(filtered_data(), "P21", "P21", ""))
-  #})
+
+ 
   
   observeEvent(input$reset_button, {
     updateSelectInput(session, "municipio", selected = "Altamira")
     updateSelectInput(session, "cnh", selected = "Sim")
     updateSelectInput(session, "destino", selected = "Aterro Sanitário")
-    updateSelectInput(session, "multa", selected = "Sim")
-    updateSelectInput(session, "destino", selected = "Fatal")
+
   })
 }
   
