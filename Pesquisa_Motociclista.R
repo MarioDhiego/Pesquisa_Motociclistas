@@ -1,4 +1,3 @@
-
 # PCOTES ----------------------------------------------------------------------#
 library(readr)
 library(readxl)
@@ -26,9 +25,11 @@ library(rlang)
 #------------------------------------------------------------------------------#
 
 
+#------------------------------------------------------------------------------#
 # Interface do Usuário (UI)
 ui <- dashboardPage( skin = "blue",
-  dashboardHeader(title = "Pesquisa Motociclistas", titleWidth = 390,
+  dashboardHeader(title = "Pesquisa Motociclistas", 
+                  titleWidth = 233,
                   tags$li(class = "dropdown",
                           a(href = "https://www.facebook.com/detranPARA",
                             class = "fa fa-facebook",
@@ -49,8 +50,12 @@ ui <- dashboardPage( skin = "blue",
                     tags$a(href="https://github.com/MarioDhiego",
                            icon("github"), "Suporte", target = "_blank"))
                   ),
-  
   dashboardSidebar(
+    minified = FALSE,
+    collapsed = FALSE,
+    tags$img(src = "detran1.jpeg", 
+             width = 230, 
+             height = 135),
     sidebarMenu(
       menuItem("PESQUISA", tabName = "defprojeto", icon = icon("book"),
                menuSubItem("Sobre Pesquisa", tabName="sobre1", icon=icon("book")),
@@ -601,6 +606,11 @@ output$idadePlot1 <- renderPlotly({
 
 #------------------------------------------------------------------------------#  
   
+
+
+
+
+
 
  
   
